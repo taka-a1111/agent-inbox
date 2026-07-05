@@ -34,6 +34,16 @@
   .note{font-size:12.5px;color:var(--ink3);text-align:center;margin-top:18px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);
     border:1px solid var(--line);color:var(--ink);padding:10px 18px;border-radius:10px;font-size:14px;display:none}
+  .histbtn{display:block;width:100%;margin-top:16px;padding:13px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink2);font-size:14.5px;cursor:pointer}
+  .hrow{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;margin-top:8px;text-decoration:none}
+  .hrow .l1{font-size:14px;color:var(--ink)}
+  .hrow .l2{font-size:12.5px;color:var(--ink3);margin-top:3px}
+  .st{font-size:12px;padding:1px 8px;border-radius:99px;margin-right:6px}
+  .st.ok{background:rgba(81,207,102,.15);color:var(--green)}
+  .st.open{background:rgba(107,138,255,.18);color:var(--accent)}
+  .st.na{background:rgba(154,164,178,.15);color:var(--ink3)}
 </style>
 </head>
 <body>
@@ -41,6 +51,8 @@
   <h1>📥 対応待ち <span class="cnt" id="cnt"></span></h1>
   <a class="toplink" id="dash" href="#" target="_blank" style="display:none">📊 受信台帳を開く</a>
   <div id="list"><div class="empty">読み込み中…</div></div>
+  <button class="histbtn" id="histBtn" style="display:none">✔ 履歴を表示</button>
+  <div id="hist" style="display:none"></div>
   <p class="note">引き下げ更新の代わりに、画面を開き直すと最新になります。</p>
 </div>
 <div class="toast" id="toast"></div>
@@ -76,7 +88,39 @@ async function load(){
   }
 }
 
+const $histBtn = document.getElementById('histBtn');
+const $hist = document.getElementById('hist');
+let histOpen = false;
+$histBtn.addEventListener('click', ()=>{
+  histOpen = !histOpen;
+  $hist.style.display = histOpen ? 'block' : 'none';
+  $histBtn.textContent = histOpen ? '✔ 履歴を隠す' : `✔ 履歴を表示（直近${$hist.childElementCount}件）`;
+});
+
+function stBadge(status){
+  if(status==='送信済み'||status==='完了') return `<span class="st ok">${status}</span>`;
+  if(status==='未対応') return `<span class="st open">未対応</span>`;
+  return `<span class="st na">${esc(status||'—')}</span>`;
+}
+
+function renderHistory(history){
+  if(!history || history.length===0){ $histBtn.style.display='none'; $hist.style.display='none'; return; }
+  $hist.innerHTML = '';
+  history.forEach(h=>{
+    const el = document.createElement(h.link ? 'a' : 'div');
+    el.className = 'hrow';
+    if(h.link){ el.href = h.link; el.target = '_blank'; }
+    el.innerHTML =
+      `<div class="l1">${stBadge(h.status)}<b>${esc(h.client)}</b>${h.case_name && h.case_name!=='—' ? '｜'+esc(h.case_name):''}${h.category?'｜'+esc(h.category):''}</div>`+
+      `<div class="l2">${esc(h.date)}　${esc(h.summary).slice(0,60)}</div>`;
+    $hist.appendChild(el);
+  });
+  $histBtn.style.display='block';
+  $histBtn.textContent = histOpen ? '✔ 履歴を隠す' : `✔ 履歴を表示（直近${history.length}件）`;
+}
+
 function render(data){
+  renderHistory(data.history);
   $cnt.textContent = data.items.length ? `${data.items.length}件` : '';
   if(data.dash){ $dash.href = data.dash; $dash.style.display='block'; }
   if(data.items.length===0){ $list.innerHTML = '<div class="empty">🎉 未処理はありません</div>'; return; }
