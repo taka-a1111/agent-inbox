@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<meta name="robots" content="noindex, nofollow">
 <title>Inbox — 対応待ち</title>
 <style>
   :root{
@@ -130,16 +129,19 @@ function render(data){
   data.items.forEach(it=>{
     const card = document.createElement('div');
     card.className = 'card';
+    const isRecord = it.mode === 'record';
+    const openHref = isRecord ? (it.site_link || '#') : `https://www.chatwork.com/#!rid${it.target_room_id}`;
     card.innerHTML =
       `<div class="meta"><b>${esc(it.client_name)}</b>｜${esc(it.room_name)}`+
       (it.category?`｜<span class="cat">${esc(it.category)}</span>`:'')+
       `<span class="time">${fmtTime(it.created)}</span></div>`+
       (it.summary?`<div class="sum">${esc(it.summary)}</div>`:'')+
+      (isRecord?`<div class="sum" style="color:var(--accent)">サイトで返信後、送った文面を下に貼って記録してください（ドラフトのまま記録も可）</div>`:'')+
       `<textarea></textarea>`+
       `<div class="btns">`+
-      `<button class="btn primary btn-send">✅ 送信</button>`+
+      `<button class="btn primary btn-send">${isRecord?'✔ 対応内容を記録':'✅ 送信'}</button>`+
       `<button class="btn btn-copy">📋 コピー</button>`+
-      `<a class="btn" href="https://www.chatwork.com/#!rid${it.target_room_id}" target="_blank">💬 ルーム</a>`+
+      `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`+
       `</div>`;
     const ta = card.querySelector('textarea');
     ta.value = it.draft;
@@ -149,23 +151,23 @@ function render(data){
     sendBtn.addEventListener('click', async ()=>{
       if(ta.style.display!=='block'){
         ta.style.display='block';
-        sendBtn.textContent='✅ この内容で送信';
+        sendBtn.textContent = isRecord ? '✔ 記録して完了' : '✅ この内容で送信';
         return;
       }
-      sendBtn.disabled = true; sendBtn.textContent='送信中…';
+      sendBtn.disabled = true; sendBtn.textContent = isRecord ? '記録中…' : '送信中…';
       try{
         const res = await fetch(GAS_URL, { method:'POST',
           headers:{'Content-Type':'text/plain'},
           body: JSON.stringify({ action:'send', t:TOKEN, id:it.id, body:ta.value }) });
         const r = await res.json();
         if(!r.ok) throw new Error(r.error||'error');
-        card.style.opacity=.35; card.querySelector('.btns').innerHTML='<div style="color:var(--green);text-align:center;width:100%">✔ 送信しました</div>';
-        toast('送信しました');
+        card.style.opacity=.35; card.querySelector('.btns').innerHTML=`<div style="color:var(--green);text-align:center;width:100%">${isRecord?'✔ 記録しました':'✔ 送信しました'}</div>`;
+        toast(isRecord?'記録しました':'送信しました');
         setTimeout(()=>{ card.remove(); const n=$list.querySelectorAll('.card').length;
           $cnt.textContent = n?`${n}件`:''; if(!n) $list.innerHTML='<div class="empty">🎉 未処理はありません</div>'; }, 900);
       }catch(e){
-        sendBtn.disabled=false; sendBtn.textContent='✅ この内容で送信';
-        toast('送信に失敗: '+e.message);
+        sendBtn.disabled=false; sendBtn.textContent = isRecord ? '✔ 記録して完了' : '✅ この内容で送信';
+        toast((isRecord?'記録':'送信')+'に失敗: '+e.message);
       }
     });
 
