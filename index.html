@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Inbox — 対応待ち</title>
+<style>
+  :root{
+    --bg:#0F1318; --panel:#181D25; --panel2:#212834;
+    --ink:#E8ECF2; --ink2:#9AA4B2; --ink3:#616B7A;
+    --line:#2A323D; --accent:#6B8AFF; --red:#FF6B6B; --green:#51CF66;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:sans-serif;font-size:16px;line-height:1.7}
+  .wrap{max-width:640px;margin:0 auto;padding:14px 14px 60px}
+  h1{font-size:18px;margin:6px 2px 12px;display:flex;align-items:center;justify-content:space-between}
+  h1 .cnt{color:var(--ink2);font-size:14px;font-weight:normal}
+  .toplink{display:block;text-align:center;border:1px solid var(--line);background:var(--panel);color:var(--ink2);
+    text-decoration:none;padding:12px;border-radius:10px;margin-bottom:10px;font-size:14.5px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+  .meta{font-size:14.5px;color:var(--ink)}
+  .meta b{font-size:15.5px}
+  .time{float:right;color:var(--ink3);font-size:12.5px}
+  .cat{color:var(--ink2)}
+  .sum{font-size:14.5px;color:var(--ink2);margin:8px 0 2px}
+  textarea{width:100%;font-family:sans-serif;font-size:15.5px;line-height:1.7;padding:12px;margin-top:10px;
+    border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);min-height:200px;display:none}
+  .btns{display:flex;gap:8px;margin-top:12px}
+  .btn{flex:1;padding:13px 4px;font-size:14px;border-radius:10px;text-align:center;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);text-decoration:none;cursor:pointer}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#0F1318;font-weight:bold}
+  .btn:disabled{opacity:.5}
+  .empty{text-align:center;color:var(--ink3);padding:56px 0;font-size:16px}
+  .note{font-size:12.5px;color:var(--ink3);text-align:center;margin-top:18px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);
+    border:1px solid var(--line);color:var(--ink);padding:10px 18px;border-radius:10px;font-size:14px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📥 対応待ち <span class="cnt" id="cnt"></span></h1>
+  <a class="toplink" id="dash" href="#" target="_blank" style="display:none">📊 受信台帳を開く</a>
+  <div id="list"><div class="empty">読み込み中…</div></div>
+  <p class="note">引き下げ更新の代わりに、画面を開き直すと最新になります。</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====== 設定（自分の値に書き換える） ====== */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyIMxJlaI626Rh4M2LSM0o63VSAGp8rKtWB_gzt0wvTD_6GnZdbX75okpXqPkrcvtmt/exec";
+const TOKEN   = "973b2ec9a7d44575b09ed3c127a61aec";
+/* ======================================== */
+
+const $list = document.getElementById('list');
+const $cnt = document.getElementById('cnt');
+const $dash = document.getElementById('dash');
+const $toast = document.getElementById('toast');
+
+function toast(msg){ $toast.textContent = msg; $toast.style.display='block';
+  setTimeout(()=>{ $toast.style.display='none'; }, 1800); }
+
+function fmtTime(ms){ if(!ms) return '';
+  const d = new Date(ms);
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function load(){
+  try{
+    const res = await fetch(`${GAS_URL}?action=list&t=${encodeURIComponent(TOKEN)}`);
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error||'error');
+    render(data);
+  }catch(e){
+    $list.innerHTML = `<div class="empty">読み込みに失敗しました<br><span style="font-size:13px">${esc(e.message)}</span></div>`;
+  }
+}
+
+function render(data){
+  $cnt.textContent = data.items.length ? `${data.items.length}件` : '';
+  if(data.dash){ $dash.href = data.dash; $dash.style.display='block'; }
+  if(data.items.length===0){ $list.innerHTML = '<div class="empty">🎉 未処理はありません</div>'; return; }
+
+  $list.innerHTML = '';
+  data.items.forEach(it=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      `<div class="meta"><b>${esc(it.client_name)}</b>｜${esc(it.room_name)}`+
+      (it.category?`｜<span class="cat">${esc(it.category)}</span>`:'')+
+      `<span class="time">${fmtTime(it.created)}</span></div>`+
+      (it.summary?`<div class="sum">${esc(it.summary)}</div>`:'')+
+      `<textarea></textarea>`+
+      `<div class="btns">`+
+      `<button class="btn primary btn-send">✅ 送信</button>`+
+      `<button class="btn btn-copy">📋 コピー</button>`+
+      `<a class="btn" href="https://www.chatwork.com/#!rid${it.target_room_id}" target="_blank">💬 ルーム</a>`+
+      `</div>`;
+    const ta = card.querySelector('textarea');
+    ta.value = it.draft;
+    const sendBtn = card.querySelector('.btn-send');
+
+    // 1回目のタップ＝本文を開いて確認/編集モードへ、2回目＝送信実行
+    sendBtn.addEventListener('click', async ()=>{
+      if(ta.style.display!=='block'){
+        ta.style.display='block';
+        sendBtn.textContent='✅ この内容で送信';
+        return;
+      }
+      sendBtn.disabled = true; sendBtn.textContent='送信中…';
+      try{
+        const res = await fetch(GAS_URL, { method:'POST',
+          headers:{'Content-Type':'text/plain'},
+          body: JSON.stringify({ action:'send', t:TOKEN, id:it.id, body:ta.value }) });
+        const r = await res.json();
+        if(!r.ok) throw new Error(r.error||'error');
+        card.style.opacity=.35; card.querySelector('.btns').innerHTML='<div style="color:var(--green);text-align:center;width:100%">✔ 送信しました</div>';
+        toast('送信しました');
+        setTimeout(()=>{ card.remove(); const n=$list.querySelectorAll('.card').length;
+          $cnt.textContent = n?`${n}件`:''; if(!n) $list.innerHTML='<div class="empty">🎉 未処理はありません</div>'; }, 900);
+      }catch(e){
+        sendBtn.disabled=false; sendBtn.textContent='✅ この内容で送信';
+        toast('送信に失敗: '+e.message);
+      }
+    });
+
+    card.querySelector('.btn-copy').addEventListener('click', ()=>{
+      navigator.clipboard.writeText(ta.value).then(()=>toast('コピーしました'))
+        .catch(()=>{ ta.style.display='block'; ta.select(); document.execCommand('copy'); toast('コピーしました'); });
+    });
+
+    $list.appendChild(card);
+  });
+}
+
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) load(); });
+load();
+</script>
+</body>
+</html>
