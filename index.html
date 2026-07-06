@@ -130,21 +130,56 @@ function render(data){
     const card = document.createElement('div');
     card.className = 'card';
     const isRecord = it.mode === 'record';
+    const isNoReply = it.category === '対応不要';
     const openHref = isRecord ? (it.site_link || '#') : `https://www.chatwork.com/#!rid${it.target_room_id}`;
     card.innerHTML =
       `<div class="meta"><b>${esc(it.client_name)}</b>｜${esc(it.room_name)}`+
       (it.category?`｜<span class="cat">${esc(it.category)}</span>`:'')+
       `<span class="time">${fmtTime(it.created)}</span></div>`+
       (it.summary?`<div class="sum">${esc(it.summary)}</div>`:'')+
-      (isRecord?`<div class="sum" style="color:var(--accent)">サイトで返信後、送った文面を下に貼って記録してください（ドラフトのまま記録も可）</div>`:'')+
+      (isNoReply?`<div class="sum" style="color:var(--ink3)">返信は不要です。「消化」で台帳に記録してカードを片付けます（送信は行われません）</div>`:
+       isRecord?`<div class="sum" style="color:var(--accent)">サイトで返信後、送った文面を下に貼って記録してください（ドラフトのまま記録も可）</div>`:'')+
       `<textarea></textarea>`+
       `<div class="btns">`+
-      `<button class="btn primary btn-send">${isRecord?'✔ 対応内容を記録':'✅ 送信'}</button>`+
-      `<button class="btn btn-copy">📋 コピー</button>`+
-      `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`+
+      (isNoReply
+        ? `<button class="btn primary btn-dismiss">✔ 消化（対応不要で記録）</button>`+
+          `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`
+        : `<button class="btn primary btn-send">${isRecord?'✔ 対応内容を記録':'✅ 送信'}</button>`+
+          `<button class="btn btn-copy">📋 コピー</button>`+
+          `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`)+
       `</div>`;
     const ta = card.querySelector('textarea');
     ta.value = it.draft;
+
+    // ★対応不要カード：消化ボタン（1回目=確認、2回目=実行。Chatworkへの投稿は一切しない）
+    const dismissBtn = card.querySelector('.btn-dismiss');
+    if(dismissBtn){
+      dismissBtn.addEventListener('click', async ()=>{
+        if(!dismissBtn.dataset.armed){
+          dismissBtn.dataset.armed = '1';
+          dismissBtn.textContent = '✔ 対応不要で確定';
+          return;
+        }
+        dismissBtn.disabled = true; dismissBtn.textContent = '記録中…';
+        try{
+          const res = await fetch(GAS_URL, { method:'POST',
+            headers:{'Content-Type':'text/plain'},
+            body: JSON.stringify({ action:'dismiss', t:TOKEN, id:it.id }) });
+          const r = await res.json();
+          if(!r.ok) throw new Error(r.error||'error');
+          card.style.opacity=.35; card.querySelector('.btns').innerHTML=`<div style="color:var(--green);text-align:center;width:100%">✔ 消化しました</div>`;
+          toast('対応不要として記録しました');
+          setTimeout(()=>{ card.remove(); const n=$list.querySelectorAll('.card').length;
+            $cnt.textContent = n?`${n}件`:''; if(!n) $list.innerHTML='<div class="empty">🎉 未処理はありません</div>'; }, 900);
+        }catch(e){
+          dismissBtn.disabled=false; dismissBtn.textContent = '✔ 対応不要で確定';
+          toast('記録に失敗: '+e.message);
+        }
+      });
+      $list.appendChild(card);
+      return;
+    }
+
     const sendBtn = card.querySelector('.btn-send');
 
     // 1回目のタップ＝本文を開いて確認/編集モードへ、2回目＝送信実行
