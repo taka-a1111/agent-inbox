@@ -145,19 +145,21 @@ function render(data){
         ? `<button class="btn primary btn-dismiss">✔ 消化（対応不要で記録）</button>`+
           `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`
         : `<button class="btn primary btn-send">${isRecord?'✔ 対応内容を記録':'✅ 送信'}</button>`+
+          `<button class="btn btn-dismiss">🗑 不要</button>`+
           `<button class="btn btn-copy">📋 コピー</button>`+
           `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`)+
       `</div>`;
     const ta = card.querySelector('textarea');
     ta.value = it.draft;
 
-    // ★対応不要カード：消化ボタン（1回目=確認、2回目=実行。Chatworkへの投稿は一切しない）
+    // ★消化ボタン（全カード共通。1回目=確認、2回目=実行。Chatworkへの投稿は一切しない）
     const dismissBtn = card.querySelector('.btn-dismiss');
     if(dismissBtn){
+      const confirmLabel = isNoReply ? '✔ 対応不要で確定' : '🗑 不要で確定';
       dismissBtn.addEventListener('click', async ()=>{
         if(!dismissBtn.dataset.armed){
           dismissBtn.dataset.armed = '1';
-          dismissBtn.textContent = '✔ 対応不要で確定';
+          dismissBtn.textContent = confirmLabel;
           return;
         }
         dismissBtn.disabled = true; dismissBtn.textContent = '記録中…';
@@ -167,15 +169,17 @@ function render(data){
             body: JSON.stringify({ action:'dismiss', t:TOKEN, id:it.id }) });
           const r = await res.json();
           if(!r.ok) throw new Error(r.error||'error');
-          card.style.opacity=.35; card.querySelector('.btns').innerHTML=`<div style="color:var(--green);text-align:center;width:100%">✔ 消化しました</div>`;
+          card.style.opacity=.35; card.querySelector('.btns').innerHTML=`<div style="color:var(--green);text-align:center;width:100%">✔ 対応不要で記録しました</div>`;
           toast('対応不要として記録しました');
           setTimeout(()=>{ card.remove(); const n=$list.querySelectorAll('.card').length;
             $cnt.textContent = n?`${n}件`:''; if(!n) $list.innerHTML='<div class="empty">🎉 未処理はありません</div>'; }, 900);
         }catch(e){
-          dismissBtn.disabled=false; dismissBtn.textContent = '✔ 対応不要で確定';
+          dismissBtn.disabled=false; dismissBtn.textContent = confirmLabel;
           toast('記録に失敗: '+e.message);
         }
       });
+    }
+    if(isNoReply){
       $list.appendChild(card);
       return;
     }
