@@ -1,261 +1,376 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Inbox — 対応待ち</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rader — 返信漏れゼロ・即アクセス</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.24.0/dist/tabler-icons.min.css">
 <style>
   :root{
-    --bg:#0F1318; --panel:#181D25; --panel2:#212834;
-    --ink:#E8ECF2; --ink2:#9AA4B2; --ink3:#616B7A;
-    --line:#2A323D; --accent:#6B8AFF; --red:#FF6B6B; --green:#51CF66;
+    --bg:#F5F6F7; --surface:#ffffff; --surface-2:#F0F2F4;
+    --border:#E4E7EB; --border-strong:#D3D8DE;
+    --text:#1B1E23; --muted:#6A727C; --faint:#9AA1AA;
+    --accent:#2F6BD8; --accent-bg:#E8F0FD;
+    --danger:#C0392B; --danger-bg:#FBEAE8;
+    --warn:#9A6A00; --warn-bg:#FAF0D8;
+    --ok:#2E7D46; --ok-bg:#E7F4EA;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#131519; --surface:#1B1E23; --surface-2:#23272E;
+      --border:#2B2F37; --border-strong:#3A3F49;
+      --text:#E7EAEE; --muted:#9AA1AA; --faint:#6C7480;
+      --accent:#6AA0FF; --accent-bg:#1B2A44;
+      --danger:#F08585; --danger-bg:#3A2020;
+      --warn:#E0B255; --warn-bg:#382C12;
+      --ok:#7FC79A; --ok-bg:#173024;
+    }
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:sans-serif;font-size:16px;line-height:1.7}
-  .wrap{max-width:640px;margin:0 auto;padding:14px 14px 60px}
-  h1{font-size:18px;margin:6px 2px 12px;display:flex;align-items:center;justify-content:space-between}
-  h1 .cnt{color:var(--ink2);font-size:14px;font-weight:normal}
-  .toplink{display:block;text-align:center;border:1px solid var(--line);background:var(--panel);color:var(--ink2);
-    text-decoration:none;padding:12px;border-radius:10px;margin-bottom:10px;font-size:14.5px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
-  .meta{font-size:14.5px;color:var(--ink)}
-  .meta b{font-size:15.5px}
-  .time{float:right;color:var(--ink3);font-size:12.5px}
-  .cat{color:var(--ink2)}
-  .sum{font-size:14.5px;color:var(--ink2);margin:8px 0 2px}
-  textarea{width:100%;font-family:sans-serif;font-size:15.5px;line-height:1.7;padding:12px;margin-top:10px;
-    border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);min-height:200px;display:none}
-  .btns{display:flex;gap:8px;margin-top:12px}
-  .btn{flex:1;padding:13px 4px;font-size:14px;border-radius:10px;text-align:center;border:1px solid var(--line);
-    background:var(--panel2);color:var(--ink);text-decoration:none;cursor:pointer}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#0F1318;font-weight:bold}
-  .btn:disabled{opacity:.5}
-  .claudebtn{display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--line);
-    background:var(--panel2);color:var(--ink2);text-align:center;text-decoration:none;font-size:13.5px;cursor:pointer}
-  .empty{text-align:center;color:var(--ink3);padding:56px 0;font-size:16px}
-  .note{font-size:12.5px;color:var(--ink3);text-align:center;margin-top:18px}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);
-    border:1px solid var(--line);color:var(--ink);padding:10px 18px;border-radius:10px;font-size:14px;display:none}
-  .histbtn{display:block;width:100%;margin-top:16px;padding:13px;border-radius:10px;border:1px solid var(--line);
-    background:var(--panel);color:var(--ink2);font-size:14.5px;cursor:pointer}
-  .hrow{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    padding:11px 12px;margin-top:8px;text-decoration:none}
-  .hrow .l1{font-size:14px;color:var(--ink)}
-  .hrow .l2{font-size:12.5px;color:var(--ink3);margin-top:3px}
-  .st{font-size:12px;padding:1px 8px;border-radius:99px;margin-right:6px}
-  .st.ok{background:rgba(81,207,102,.15);color:var(--green)}
-  .st.open{background:rgba(107,138,255,.18);color:var(--accent)}
-  .st.na{background:rgba(154,164,178,.15);color:var(--ink3)}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP","Segoe UI",sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px; margin:0 auto; padding:28px 20px 64px}
+  a{color:inherit}
+  button{font-family:inherit; cursor:pointer}
+
+  .top{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:22px}
+  .brand{display:flex; align-items:center; gap:11px}
+  .brand-mark{width:38px;height:38px;border-radius:10px;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .brand-mark i{font-size:22px}
+  .brand h1{font-size:20px; font-weight:600; margin:0; line-height:1.1}
+  .brand p{font-size:12px; color:var(--muted); margin:2px 0 0}
+  .top-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .count{font-size:13px; font-weight:600; background:var(--danger-bg); color:var(--danger); padding:5px 12px; border-radius:20px}
+  .count.zero{background:var(--ok-bg); color:var(--ok)}
+  .updated{font-size:12px; color:var(--faint)}
+  .refresh{display:inline-flex; align-items:center; gap:6px; font-size:13px; background:var(--surface); color:var(--text); border:0.5px solid var(--border-strong); padding:6px 12px; border-radius:8px}
+  .refresh:hover{background:var(--surface-2)}
+  .refresh i{font-size:16px}
+
+  .seg{display:inline-flex; background:var(--surface-2); border-radius:9px; padding:3px; gap:2px}
+  .seg button{font-size:12.5px; border:none; background:transparent; color:var(--muted); padding:5px 12px; border-radius:7px}
+  .seg button.on{background:var(--surface); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+  .coverage{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin:18px 0 26px}
+  .cov{background:var(--surface); border:0.5px solid var(--border); border-radius:12px; padding:12px 14px}
+  .cov-h{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); margin-bottom:5px}
+  .cov-h i{font-size:16px}
+  .cov-n{font-size:22px; font-weight:600}
+  .cov-n small{font-size:12px; color:var(--faint); font-weight:400}
+  .cov.pending .cov-n{color:var(--warn)}
+  .cov.clear .cov-clear{display:flex; align-items:center; gap:5px; color:var(--ok); font-size:14px; margin-top:4px}
+  .cov.clear .cov-clear i{font-size:18px}
+
+  .card{background:var(--surface); border:0.5px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:14px}
+  .card-h{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .cli{display:flex; align-items:center; gap:11px; min-width:0}
+  .cli-mark{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+  .cli-mark.company{background:var(--accent-bg); color:var(--accent)}
+  .cli-name{font-size:15px; font-weight:600; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cli-sub{font-size:12px; color:var(--muted)}
+  .card-h-right{display:flex; align-items:center; gap:10px; flex-shrink:0}
+
+  .links{display:flex; align-items:center; gap:6px}
+  .bt{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;position:relative;transition:transform .1s}
+  .bt:hover{transform:translateY(-1px)}
+  .bt i{font-size:16px}
+  .bt .auto{position:absolute;top:-3px;right:-3px;width:11px;height:11px;border-radius:50%;background:#1E8E3E;border:2px solid var(--surface)}
+
+  .age{font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; white-space:nowrap}
+  .age.danger{background:var(--danger-bg); color:var(--danger)}
+  .age.warn{background:var(--warn-bg); color:var(--warn)}
+  .age.note{background:var(--accent-bg); color:var(--accent)}
+  .age.fresh{background:var(--surface-2); color:var(--muted)}
+
+  .members{border-top:0.5px solid var(--border); margin-top:12px; padding-left:13px; border-left:2px solid var(--border)}
+  .mem{padding:13px 0; border-bottom:0.5px solid var(--border)}
+  .mem:last-child{border-bottom:none; padding-bottom:2px}
+  .mem-h{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:9px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0}
+  .mem-name{font-size:13.5px; font-weight:600}
+  .role{font-size:11px;padding:2px 9px;border-radius:6px;background:var(--surface-2);color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+  .role i{font-size:12px}
+
+  .item{display:flex; gap:11px; align-items:flex-start}
+  .item + .item{margin-top:12px}
+  .ch{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+  .ch i{font-size:16px}
+  .item-body{flex:1; min-width:0}
+  .item-text{font-size:13.5px; color:var(--text); line-height:1.55}
+  .stamp{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:7px}
+  .recv{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); background:var(--surface-2); border:0.5px solid var(--border); padding:4px 10px; border-radius:8px}
+  .recv i{font-size:14px}
+  .recv b{font-size:14px; font-weight:600; color:var(--text)}
+  .elapsed{display:inline-flex; align-items:center; gap:5px; font-size:13.5px; font-weight:600; padding:4px 11px; border-radius:8px}
+  .elapsed i{font-size:15px}
+  .elapsed.danger{background:var(--danger-bg); color:var(--danger)}
+  .elapsed.warn{background:var(--warn-bg); color:var(--warn)}
+  .elapsed.note{background:var(--accent-bg); color:var(--accent)}
+  .elapsed.fresh{background:var(--surface-2); color:var(--muted)}
+
+  .item-actions{display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0}
+  .open{display:inline-flex; align-items:center; gap:3px; font-size:12.5px; color:var(--accent); background:none; border:none; padding:2px}
+  .open i{font-size:14px}
+  .done{width:30px;height:30px;border-radius:8px;border:0.5px solid var(--border-strong);background:var(--surface);color:var(--muted);display:inline-flex;align-items:center;justify-content:center}
+  .done:hover{background:var(--ok-bg); color:var(--ok); border-color:var(--ok)}
+  .done i{font-size:16px}
+
+  .empty{text-align:center; padding:60px 20px; color:var(--muted)}
+  .empty i{font-size:40px; color:var(--ok); display:block; margin-bottom:10px}
+  .empty h2{font-size:17px; font-weight:600; margin:0 0 4px; color:var(--text)}
+
+  .foot{margin-top:24px; font-size:11.5px; color:var(--faint); text-align:center; line-height:1.8}
+  .foot b{color:var(--muted); font-weight:600}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>📥 対応待ち <span class="cnt" id="cnt"></span></h1>
-  <a class="toplink" id="dash" href="#" target="_blank" style="display:none">📊 受信台帳を開く</a>
-  <a class="toplink" id="proj" href="#" target="_blank" style="display:none">🧠 Claudeプロジェクトを開く</a>
-  <div id="list"><div class="empty">読み込み中…</div></div>
-  <button class="histbtn" id="histBtn" style="display:none">✔ 履歴を表示</button>
-  <div id="hist" style="display:none"></div>
-  <p class="note">引き下げ更新の代わりに、画面を開き直すと最新になります。</p>
+  <div class="top">
+    <div class="brand">
+      <div class="brand-mark"><i class="ti ti-radar-2"></i></div>
+      <div>
+        <h1>Rader</h1>
+        <p>返信漏れゼロ・即アクセス</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="seg" id="seg">
+        <button data-mode="old" class="on">古い順</button>
+        <button data-mode="client">クライアント別</button>
+      </div>
+      <span class="count" id="count">未対応 0件</span>
+      <button class="refresh" id="refresh"><i class="ti ti-refresh"></i>更新</button>
+    </div>
+  </div>
+  <div class="updated" id="updated" style="margin:-14px 0 18px"></div>
+
+  <div class="coverage" id="coverage"></div>
+  <div id="list"></div>
+
+  <div class="foot">
+    <span><b>受信と同時に取り込み</b>（Chatwork＝webhook／メール＝1分トリガー、クラウドワークス・ランサーズ通知メールも同経路）。返信すると自動で件数が減ります。</span><br>
+    <span>共有Driveフォルダ・ファイルは<b>自動追加</b>（アイコンの緑ドット）。「開く」で該当メッセージへ、右のアイコンでクライアントの作業画面へ即ジャンプ。</span>
+  </div>
 </div>
-<div class="toast" id="toast"></div>
 
 <script>
-/* ====== 設定（自分の値に書き換える） ====== */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyIMxJlaI626Rh4M2LSM0o63VSAGp8rKtWB_gzt0wvTD_6GnZdbX75okpXqPkrcvtmt/exec";
-const TOKEN   = "973b2ec9a7d44575b09ed3c127a61aec";
-// ↓ Claudeプロジェクトを開くボタンのリンク先。ブラウザで自分のプロジェクトを開き、アドレスバーのURLを貼る。
-// 空のままにすればボタンは表示されません。
-const PROJECT_URL = "";
-/* ======================================== */
+const now0 = Date.now();
+const mAgo = m => new Date(now0 - m*60000).toISOString();
+const dAgo = (d,h=0,m=0) => new Date(now0 - (d*1440 + h*60 + m)*60000).toISOString();
 
-const $list = document.getElementById('list');
-const $cnt = document.getElementById('cnt');
-const $dash = document.getElementById('dash');
-const $toast = document.getElementById('toast');
+const BRAND = {
+  claude:     {bg:'#D97757', icon:'ti-sparkles',           label:'Claudeプロジェクト'},
+  chatwork:   {bg:'#E15A4A', icon:'ti-messages',           label:'Chatworkルーム'},
+  gmail:      {bg:'#EA4335', icon:'ti-mail',               label:'Gmail'},
+  crowdworks: {bg:'#0FA48B', icon:'ti-briefcase',          label:'クラウドワークス'},
+  lancers:    {bg:'#E8552A', icon:'ti-user-search',        label:'ランサーズ'},
+  sheet:      {bg:'#1E8E3E', icon:'ti-table',              label:'目標進捗シート'},
+  drive:      {bg:'#1A73E8', icon:'ti-brand-google-drive', label:'共有Driveフォルダ'},
+  wordpress:  {bg:'#21759B', icon:'ti-brand-wordpress',    label:'WordPress管理画面'},
+};
 
-// Claudeプロジェクトを開くボタン（PROJECT_URLが入っていれば表示）
-const $proj = document.getElementById('proj');
-if (typeof PROJECT_URL === 'string' && PROJECT_URL.trim()) {
-  $proj.href = PROJECT_URL.trim();
-  $proj.style.display = 'block';
+const CHANNELS = [
+  {key:'gmail',      label:'メール',           icon:'ti-mail'},
+  {key:'chatwork',   label:'Chatwork',         icon:'ti-messages'},
+  {key:'crowdworks', label:'クラウドワークス', icon:'ti-briefcase'},
+  {key:'lancers',    label:'ランサーズ',       icon:'ti-user-search'},
+];
+
+// ここに実データ（取り込みストア）を差し込む。今はデモ用サンプル。
+async function fetchReplyStore(){
+  return [
+    {
+      id:'cw', kind:'platform', name:'クラウドワークス', sub:'応募中の案件',
+      channel:'crowdworks', links:[],
+      members:[
+        {name:'ranp3times 様', role:'', items:[
+          {id:'i1', channel:'crowdworks', url:'#', receivedAt:dAgo(25,3,20),
+           text:'一次面接後のご連絡です。今後の進め方についてご相談させてください…'}
+        ]}
+      ]
+    },
+    {
+      id:'genieee', kind:'company', name:'株式会社GeNieee', sub:'',
+      links:[
+        {type:'claude', url:'#'}, {type:'chatwork', url:'#'},
+        {type:'sheet', url:'#'}, {type:'drive', url:'#', auto:true}
+      ],
+      members:[
+        {name:'田村 浩輝', role:'広告審査ツール担当', items:[
+          {id:'i2', channel:'chatwork', url:'#', receivedAt:dAgo(3,2,5),
+           text:'FB/LNは新しい方を1つ表示でOKです。判定条件だけ相談させてください'}
+        ]},
+        {name:'梶谷 翔貴', role:'主担当・窓口', items:[
+          {id:'i3', channel:'chatwork', url:'#', receivedAt:mAgo(34),
+           text:'要件定義書、6章のFB/LN表示の件だけ確認したいのでお時間もらえますか？'}
+        ]}
+      ]
+    },
+    {
+      id:'shiroari', kind:'company', name:'シロアリお助け本舗', sub:'',
+      links:[
+        {type:'claude', url:'#'}, {type:'wordpress', url:'#'}, {type:'drive', url:'#', auto:true}
+      ],
+      members:[
+        {name:'ご担当者', role:'記事発注・確認', items:[
+          {id:'i4', channel:'gmail', url:'#', receivedAt:dAgo(2,6,40),
+           text:'先日の記事、見出しを2つ追加で直してほしいのですが可能ですか？'}
+        ]}
+      ]
+    }
+  ];
 }
 
-function toast(msg){ $toast.textContent = msg; $toast.style.display='block';
-  setTimeout(()=>{ $toast.style.display='none'; }, 1800); }
+let STORE = [];
+let MODE = 'old';
+const resolved = new Set();
 
-function fmtTime(ms){ if(!ms) return '';
-  const d = new Date(ms);
-  return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+const WD = ['日','月','火','水','木','金','土'];
+const pad = n => String(n).padStart(2,'0');
 
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(iso){
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function elapsed(iso){
+  const min = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime())/60000));
+  const d = Math.floor(min/1440), h = Math.floor((min%1440)/60), m = min%60;
+  const parts = [];
+  if(d) parts.push(d+'日');
+  if(d||h) parts.push(h+'時間');
+  parts.push(m+'分');
+  let level = 'fresh';
+  if(min>=4320) level='danger'; else if(min>=1440) level='warn'; else if(min>=240) level='note';
+  return {text:parts.join(' ')+'経過', level, min};
+}
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
-// Claudeに貼り付ける文面を組み立てる（相手のメッセージ＋Radarのドラフトを参考として渡す）
-function claudePrompt(it){
-  const msg = (it.source_text && String(it.source_text).trim()) ? String(it.source_text).trim() : (it.summary || '');
-  return '次のクライアントからのメッセージへの返信文を、Infosuccessの高崎として作成してください。\n\n'
-    + '■クライアント：' + (it.client_name||'') + '｜' + (it.room_name||'') + '\n'
-    + '■相手のメッセージ：\n' + msg + '\n\n'
-    + '（参考・Radarが作った返信案。イマイチなので改善してください）\n' + (it.draft || '（なし）');
+function liveItems(client){
+  return client.members.flatMap(m => m.items.filter(it => !resolved.has(it.id)).map(it => ({...it, member:m})));
+}
+function oldestMin(client){
+  const its = liveItems(client);
+  if(!its.length) return -1;
+  return Math.max(...its.map(it => elapsed(it.receivedAt).min));
 }
 
-async function load(){
-  try{
-    const res = await fetch(`${GAS_URL}?action=list&t=${encodeURIComponent(TOKEN)}`);
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error||'error');
-    render(data);
-  }catch(e){
-    $list.innerHTML = `<div class="empty">読み込みに失敗しました<br><span style="font-size:13px">${esc(e.message)}</span></div>`;
+function btn(link){
+  const b = BRAND[link.type];
+  const auto = link.auto ? '<span class="auto"></span>' : '';
+  const lab = link.auto ? b.label+'（自動追加）' : b.label;
+  return `<a class="bt" style="background:${b.bg}" href="${link.url}" target="_blank" rel="noopener" title="${lab}" aria-label="${lab}"><i class="ti ${b.icon}"></i>${auto}</a>`;
+}
+
+function itemHTML(it){
+  const ch = BRAND[it.channel];
+  const e = elapsed(it.receivedAt);
+  return `<div class="item">
+    <div class="ch" style="background:${ch.bg}" title="${ch.label}"><i class="ti ${ch.icon}"></i></div>
+    <div class="item-body">
+      <div class="item-text">${esc(it.text)}</div>
+      <div class="stamp">
+        <span class="recv"><i class="ti ti-clock"></i>受信 <b>${fmtDate(it.receivedAt)}</b></span>
+        <span class="elapsed ${e.level}"><i class="ti ti-history"></i>${e.text}</span>
+      </div>
+    </div>
+    <div class="item-actions">
+      <button class="open" onclick="window.open('${it.url}','_blank')">開く<i class="ti ti-arrow-right"></i></button>
+      <button class="done" title="対応済みにする" aria-label="対応済みにする" onclick="markDone('${it.id}')"><i class="ti ti-check"></i></button>
+    </div>
+  </div>`;
+}
+
+function cardHTML(client){
+  const its = liveItems(client);
+  if(!its.length) return '';
+  const om = oldestMin(client);
+  const oe = {text:'', level:'fresh'};
+  { const min=om; let lv='fresh'; if(min>=4320)lv='danger'; else if(min>=1440)lv='warn'; else if(min>=240)lv='note';
+    const d=Math.floor(min/1440),h=Math.floor((min%1440)/60),m=min%60; const p=[]; if(d)p.push(d+'日'); if(d||h)p.push(h+'時間'); p.push(m+'分');
+    oe.text=p.join(' ')+'経過'; oe.level=lv; }
+
+  const mark = client.kind==='platform'
+    ? `<div class="cli-mark" style="background:${BRAND[client.channel].bg}"><i class="ti ${BRAND[client.channel].icon}"></i></div>`
+    : `<div class="cli-mark company"><i class="ti ti-building"></i></div>`;
+  const sub = client.sub || `対応待ち ${its.length}件`;
+  const links = (client.links||[]).map(btn).join('');
+  const linksWrap = links ? `<div class="links">${links}</div>` : '';
+
+  let body = '';
+  if(client.kind==='platform'){
+    body = its.map(itemHTML).join('');
+    body = `<div style="border-top:0.5px solid var(--border); margin-top:12px; padding-top:12px">${body}</div>`;
+  } else {
+    const mems = client.members.map(m=>{
+      const mits = m.items.filter(it=>!resolved.has(it.id));
+      if(!mits.length) return '';
+      const initial = m.name.replace(/\s.*$/,'').slice(0,1);
+      const role = m.role ? `<span class="role"><i class="ti ti-target"></i>${esc(m.role)}</span>` : '';
+      return `<div class="mem">
+        <div class="mem-h"><div class="avatar">${esc(initial)}</div><span class="mem-name">${esc(m.name)}</span>${role}</div>
+        ${mits.map(itemHTML).join('')}
+      </div>`;
+    }).join('');
+    body = `<div class="members">${mems}</div>`;
   }
+
+  return `<div class="card">
+    <div class="card-h">
+      <div class="cli">${mark}<div style="min-width:0"><div class="cli-name">${esc(client.name)}</div><div class="cli-sub">${esc(sub)}</div></div></div>
+      <div class="card-h-right">${linksWrap}<span class="age ${oe.level}">${oe.text}</span></div>
+    </div>
+    ${body}
+  </div>`;
 }
 
-const $histBtn = document.getElementById('histBtn');
-const $hist = document.getElementById('hist');
-let histOpen = false;
-$histBtn.addEventListener('click', ()=>{
-  histOpen = !histOpen;
-  $hist.style.display = histOpen ? 'block' : 'none';
-  $histBtn.textContent = histOpen ? '✔ 履歴を隠す' : `✔ 履歴を表示（直近${$hist.childElementCount}件）`;
+function render(){
+  const clients = STORE.filter(c => liveItems(c).length>0);
+  if(MODE==='old') clients.sort((a,b)=>oldestMin(b)-oldestMin(a));
+
+  const total = clients.reduce((n,c)=>n+liveItems(c).length,0);
+  const cEl = document.getElementById('count');
+  cEl.textContent = `未対応 ${total}件`;
+  cEl.classList.toggle('zero', total===0);
+
+  const counts = {};
+  clients.forEach(c=>liveItems(c).forEach(it=>counts[it.channel]=(counts[it.channel]||0)+1));
+  document.getElementById('coverage').innerHTML = CHANNELS.map(ch=>{
+    const n = counts[ch.key]||0;
+    if(n===0) return `<div class="cov clear"><div class="cov-h"><i class="ti ${ch.icon}"></i>${ch.label}</div><div class="cov-clear"><i class="ti ti-check"></i>漏れなし</div></div>`;
+    return `<div class="cov pending"><div class="cov-h"><i class="ti ${ch.icon}"></i>${ch.label}</div><div class="cov-n">${n}<small> 件待ち</small></div></div>`;
+  }).join('');
+
+  document.getElementById('list').innerHTML = total===0
+    ? `<div class="empty"><i class="ti ti-circle-check"></i><h2>返信待ちはありません</h2><div>すべて返信済みです。</div></div>`
+    : clients.map(cardHTML).join('');
+}
+
+function markDone(id){ resolved.add(id); render(); }
+
+document.getElementById('seg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  MODE = b.dataset.mode;
+  [...document.querySelectorAll('#seg button')].forEach(x=>x.classList.toggle('on', x===b));
+  render();
+});
+function stampUpdated(){
+  const d = new Date();
+  document.getElementById('updated').textContent = `最終更新 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+document.getElementById('refresh').addEventListener('click', async ()=>{
+  STORE = await fetchReplyStore(); stampUpdated(); render();
 });
 
-function stBadge(status){
-  if(status==='送信済み'||status==='完了') return `<span class="st ok">${status}</span>`;
-  if(status==='未対応') return `<span class="st open">未対応</span>`;
-  return `<span class="st na">${esc(status||'—')}</span>`;
-}
-
-function renderHistory(history){
-  if(!history || history.length===0){ $histBtn.style.display='none'; $hist.style.display='none'; return; }
-  $hist.innerHTML = '';
-  history.forEach(h=>{
-    const el = document.createElement(h.link ? 'a' : 'div');
-    el.className = 'hrow';
-    if(h.link){ el.href = h.link; el.target = '_blank'; }
-    el.innerHTML =
-      `<div class="l1">${stBadge(h.status)}<b>${esc(h.client)}</b>${h.case_name && h.case_name!=='—' ? '｜'+esc(h.case_name):''}${h.category?'｜'+esc(h.category):''}</div>`+
-      `<div class="l2">${esc(h.date)}　${esc(h.summary).slice(0,60)}</div>`;
-    $hist.appendChild(el);
-  });
-  $histBtn.style.display='block';
-  $histBtn.textContent = histOpen ? '✔ 履歴を隠す' : `✔ 履歴を表示（直近${history.length}件）`;
-}
-
-function render(data){
-  renderHistory(data.history);
-  $cnt.textContent = data.items.length ? `${data.items.length}件` : '';
-  if(data.dash){ $dash.href = data.dash; $dash.style.display='block'; }
-  if(data.items.length===0){ $list.innerHTML = '<div class="empty">🎉 未処理はありません</div>'; return; }
-
-  $list.innerHTML = '';
-  data.items.forEach(it=>{
-    const card = document.createElement('div');
-    card.className = 'card';
-    const isRecord = it.mode === 'record';
-    const isNoReply = it.category === '対応不要';
-    const openHref = isRecord ? (it.site_link || '#') : `https://www.chatwork.com/#!rid${it.target_room_id}`;
-    const claudeBtnHTML = (typeof PROJECT_URL==='string' && PROJECT_URL.trim() && !isNoReply)
-      ? `<a class="claudebtn" href="${PROJECT_URL.trim()}" target="_blank">🧠 Claudeで作り直す（このメッセージをコピーして開く）</a>`
-      : '';
-    card.innerHTML =
-      `<div class="meta"><b>${esc(it.client_name)}</b>｜${esc(it.room_name)}`+
-      (it.category?`｜<span class="cat">${esc(it.category)}</span>`:'')+
-      `<span class="time">${fmtTime(it.created)}</span></div>`+
-      (it.summary?`<div class="sum">${esc(it.summary)}</div>`:'')+
-      (isNoReply?`<div class="sum" style="color:var(--ink3)">返信は不要です。「消化」で台帳に記録してカードを片付けます（送信は行われません）</div>`:
-       isRecord?`<div class="sum" style="color:var(--accent)">サイトで返信後、送った文面を下に貼って記録してください（ドラフトのまま記録も可）</div>`:'')+
-      `<textarea></textarea>`+
-      `<div class="btns">`+
-      (isNoReply
-        ? `<button class="btn primary btn-dismiss">✔ 消化（対応不要で記録）</button>`+
-          `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`
-        : `<button class="btn primary btn-send">${isRecord?'✔ 対応内容を記録':'✅ 送信'}</button>`+
-          `<button class="btn btn-dismiss">🗑 不要</button>`+
-          `<button class="btn btn-copy">📋 コピー</button>`+
-          `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`)+
-      `</div>`+
-      claudeBtnHTML;
-    const ta = card.querySelector('textarea');
-    ta.value = it.draft;
-
-    // ★消化ボタン（全カード共通。1回目=確認、2回目=実行。Chatworkへの投稿は一切しない）
-    const dismissBtn = card.querySelector('.btn-dismiss');
-    if(dismissBtn){
-      const confirmLabel = isNoReply ? '✔ 対応不要で確定' : '🗑 不要で確定';
-      dismissBtn.addEventListener('click', async ()=>{
-        if(!dismissBtn.dataset.armed){
-          dismissBtn.dataset.armed = '1';
-          dismissBtn.textContent = confirmLabel;
-          return;
-        }
-        dismissBtn.disabled = true; dismissBtn.textContent = '記録中…';
-        try{
-          const res = await fetch(GAS_URL, { method:'POST',
-            headers:{'Content-Type':'text/plain'},
-            body: JSON.stringify({ action:'dismiss', t:TOKEN, id:it.id }) });
-          const r = await res.json();
-          if(!r.ok) throw new Error(r.error||'error');
-          card.style.opacity=.35; card.querySelector('.btns').innerHTML=`<div style="color:var(--green);text-align:center;width:100%">✔ 対応不要で記録しました</div>`;
-          toast('対応不要として記録しました');
-          setTimeout(()=>{ card.remove(); const n=$list.querySelectorAll('.card').length;
-            $cnt.textContent = n?`${n}件`:''; if(!n) $list.innerHTML='<div class="empty">🎉 未処理はありません</div>'; }, 900);
-        }catch(e){
-          dismissBtn.disabled=false; dismissBtn.textContent = confirmLabel;
-          toast('記録に失敗: '+e.message);
-        }
-      });
-    }
-    if(isNoReply){
-      $list.appendChild(card);
-      return;
-    }
-
-    const sendBtn = card.querySelector('.btn-send');
-
-    // 1回目のタップ＝本文を開いて確認/編集モードへ、2回目＝送信実行
-    sendBtn.addEventListener('click', async ()=>{
-      if(ta.style.display!=='block'){
-        ta.style.display='block';
-        sendBtn.textContent = isRecord ? '✔ 記録して完了' : '✅ この内容で送信';
-        return;
-      }
-      sendBtn.disabled = true; sendBtn.textContent = isRecord ? '記録中…' : '送信中…';
-      try{
-        const res = await fetch(GAS_URL, { method:'POST',
-          headers:{'Content-Type':'text/plain'},
-          body: JSON.stringify({ action:'send', t:TOKEN, id:it.id, body:ta.value }) });
-        const r = await res.json();
-        if(!r.ok) throw new Error(r.error||'error');
-        card.style.opacity=.35; card.querySelector('.btns').innerHTML=`<div style="color:var(--green);text-align:center;width:100%">${isRecord?'✔ 記録しました':'✔ 送信しました'}</div>`;
-        toast(isRecord?'記録しました':'送信しました');
-        setTimeout(()=>{ card.remove(); const n=$list.querySelectorAll('.card').length;
-          $cnt.textContent = n?`${n}件`:''; if(!n) $list.innerHTML='<div class="empty">🎉 未処理はありません</div>'; }, 900);
-      }catch(e){
-        sendBtn.disabled=false; sendBtn.textContent = isRecord ? '✔ 記録して完了' : '✅ この内容で送信';
-        toast((isRecord?'記録':'送信')+'に失敗: '+e.message);
-      }
-    });
-
-    card.querySelector('.btn-copy').addEventListener('click', ()=>{
-      navigator.clipboard.writeText(ta.value).then(()=>toast('コピーしました'))
-        .catch(()=>{ ta.style.display='block'; ta.select(); document.execCommand('copy'); toast('コピーしました'); });
-    });
-
-    const claudeBtn = card.querySelector('.claudebtn');
-    if(claudeBtn){
-      claudeBtn.addEventListener('click', ()=>{
-        navigator.clipboard.writeText(claudePrompt(it))
-          .then(()=>toast('メッセージをコピーしました。Claudeで貼り付けてください'))
-          .catch(()=>toast('コピーに失敗。💬ルームから手動でコピーしてください'));
-      });
-    }
-
-    $list.appendChild(card);
-  });
-}
-
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) load(); });
-load();
+(async function(){
+  STORE = await fetchReplyStore();
+  stampUpdated();
+  render();
+  setInterval(render, 60000); // 毎分、経過時間を更新
+})();
 </script>
 </body>
 </html>
