@@ -158,9 +158,9 @@
 </div>
 
 <script>
-const now0 = Date.now();
-const mAgo = m => new Date(now0 - m*60000).toISOString();
-const dAgo = (d,h=0,m=0) => new Date(now0 - (d*1440 + h*60 + m)*60000).toISOString();
+// 取り込みエンジン（GAS）のJSONエンドポイントをここに設定する
+const STORE_URL = "";
+let CONNECTED = false;
 
 const BRAND = {
   claude:     {bg:'#D97757', icon:'ti-sparkles',           label:'Claudeプロジェクト'},
@@ -180,49 +180,15 @@ const CHANNELS = [
   {key:'lancers',    label:'ランサーズ',       icon:'ti-user-search'},
 ];
 
-// ここに実データ（取り込みストア）を差し込む。今はデモ用サンプル。
+// 取り込みエンジンのJSONを取得する。未接続のあいだは空（＝接続待ち表示）。
 async function fetchReplyStore(){
-  return [
-    {
-      id:'cw', kind:'platform', name:'クラウドワークス', sub:'応募中の案件',
-      channel:'crowdworks', links:[],
-      members:[
-        {name:'ranp3times 様', role:'', items:[
-          {id:'i1', channel:'crowdworks', url:'#', receivedAt:dAgo(25,3,20),
-           text:'一次面接後のご連絡です。今後の進め方についてご相談させてください…'}
-        ]}
-      ]
-    },
-    {
-      id:'genieee', kind:'company', name:'株式会社GeNieee', sub:'',
-      links:[
-        {type:'claude', url:'#'}, {type:'chatwork', url:'#'},
-        {type:'sheet', url:'#'}, {type:'drive', url:'#', auto:true}
-      ],
-      members:[
-        {name:'田村 浩輝', role:'広告審査ツール担当', items:[
-          {id:'i2', channel:'chatwork', url:'#', receivedAt:dAgo(3,2,5),
-           text:'FB/LNは新しい方を1つ表示でOKです。判定条件だけ相談させてください'}
-        ]},
-        {name:'梶谷 翔貴', role:'主担当・窓口', items:[
-          {id:'i3', channel:'chatwork', url:'#', receivedAt:mAgo(34),
-           text:'要件定義書、6章のFB/LN表示の件だけ確認したいのでお時間もらえますか？'}
-        ]}
-      ]
-    },
-    {
-      id:'shiroari', kind:'company', name:'シロアリお助け本舗', sub:'',
-      links:[
-        {type:'claude', url:'#'}, {type:'wordpress', url:'#'}, {type:'drive', url:'#', auto:true}
-      ],
-      members:[
-        {name:'ご担当者', role:'記事発注・確認', items:[
-          {id:'i4', channel:'gmail', url:'#', receivedAt:dAgo(2,6,40),
-           text:'先日の記事、見出しを2つ追加で直してほしいのですが可能ですか？'}
-        ]}
-      ]
-    }
-  ];
+  if(!STORE_URL){ CONNECTED = false; return []; }
+  try{
+    const r = await fetch(STORE_URL, {cache:'no-store'});
+    const data = await r.json();
+    CONNECTED = true;
+    return Array.isArray(data) ? data : (data.clients || []);
+  }catch(e){ CONNECTED = false; return []; }
 }
 
 let STORE = [];
@@ -344,9 +310,15 @@ function render(){
     return `<div class="cov pending"><div class="cov-h"><i class="ti ${ch.icon}"></i>${ch.label}</div><div class="cov-n">${n}<small> 件待ち</small></div></div>`;
   }).join('');
 
-  document.getElementById('list').innerHTML = total===0
-    ? `<div class="empty"><i class="ti ti-circle-check"></i><h2>返信待ちはありません</h2><div>すべて返信済みです。</div></div>`
-    : clients.map(cardHTML).join('');
+  let listHTML;
+  if(total===0){
+    listHTML = CONNECTED
+      ? `<div class="empty"><i class="ti ti-circle-check"></i><h2>返信待ちはありません</h2><div>すべて返信済みです。</div></div>`
+      : `<div class="empty"><i class="ti ti-plug-connected-x" style="color:var(--muted)"></i><h2>取り込みエンジンに接続してください</h2><div>接続すると、実際の返信待ちがここに表示されます。</div></div>`;
+  } else {
+    listHTML = clients.map(cardHTML).join('');
+  }
+  document.getElementById('list').innerHTML = listHTML;
 }
 
 function markDone(id){ resolved.add(id); render(); }
