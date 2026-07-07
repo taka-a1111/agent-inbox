@@ -30,6 +30,8 @@
     background:var(--panel2);color:var(--ink);text-decoration:none;cursor:pointer}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#0F1318;font-weight:bold}
   .btn:disabled{opacity:.5}
+  .claudebtn{display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink2);text-align:center;text-decoration:none;font-size:13.5px;cursor:pointer}
   .empty{text-align:center;color:var(--ink3);padding:56px 0;font-size:16px}
   .note{font-size:12.5px;color:var(--ink3);text-align:center;margin-top:18px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);
@@ -50,6 +52,7 @@
 <div class="wrap">
   <h1>📥 対応待ち <span class="cnt" id="cnt"></span></h1>
   <a class="toplink" id="dash" href="#" target="_blank" style="display:none">📊 受信台帳を開く</a>
+  <a class="toplink" id="proj" href="#" target="_blank" style="display:none">🧠 Claudeプロジェクトを開く</a>
   <div id="list"><div class="empty">読み込み中…</div></div>
   <button class="histbtn" id="histBtn" style="display:none">✔ 履歴を表示</button>
   <div id="hist" style="display:none"></div>
@@ -61,12 +64,22 @@
 /* ====== 設定（自分の値に書き換える） ====== */
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyIMxJlaI626Rh4M2LSM0o63VSAGp8rKtWB_gzt0wvTD_6GnZdbX75okpXqPkrcvtmt/exec";
 const TOKEN   = "973b2ec9a7d44575b09ed3c127a61aec";
+// ↓ Claudeプロジェクトを開くボタンのリンク先。ブラウザで自分のプロジェクトを開き、アドレスバーのURLを貼る。
+// 空のままにすればボタンは表示されません。
+const PROJECT_URL = "";
 /* ======================================== */
 
 const $list = document.getElementById('list');
 const $cnt = document.getElementById('cnt');
 const $dash = document.getElementById('dash');
 const $toast = document.getElementById('toast');
+
+// Claudeプロジェクトを開くボタン（PROJECT_URLが入っていれば表示）
+const $proj = document.getElementById('proj');
+if (typeof PROJECT_URL === 'string' && PROJECT_URL.trim()) {
+  $proj.href = PROJECT_URL.trim();
+  $proj.style.display = 'block';
+}
 
 function toast(msg){ $toast.textContent = msg; $toast.style.display='block';
   setTimeout(()=>{ $toast.style.display='none'; }, 1800); }
@@ -76,6 +89,15 @@ function fmtTime(ms){ if(!ms) return '';
   return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Claudeに貼り付ける文面を組み立てる（相手のメッセージ＋Radarのドラフトを参考として渡す）
+function claudePrompt(it){
+  const msg = (it.source_text && String(it.source_text).trim()) ? String(it.source_text).trim() : (it.summary || '');
+  return '次のクライアントからのメッセージへの返信文を、Infosuccessの高崎として作成してください。\n\n'
+    + '■クライアント：' + (it.client_name||'') + '｜' + (it.room_name||'') + '\n'
+    + '■相手のメッセージ：\n' + msg + '\n\n'
+    + '（参考・Radarが作った返信案。イマイチなので改善してください）\n' + (it.draft || '（なし）');
+}
 
 async function load(){
   try{
@@ -132,6 +154,9 @@ function render(data){
     const isRecord = it.mode === 'record';
     const isNoReply = it.category === '対応不要';
     const openHref = isRecord ? (it.site_link || '#') : `https://www.chatwork.com/#!rid${it.target_room_id}`;
+    const claudeBtnHTML = (typeof PROJECT_URL==='string' && PROJECT_URL.trim() && !isNoReply)
+      ? `<a class="claudebtn" href="${PROJECT_URL.trim()}" target="_blank">🧠 Claudeで作り直す（このメッセージをコピーして開く）</a>`
+      : '';
     card.innerHTML =
       `<div class="meta"><b>${esc(it.client_name)}</b>｜${esc(it.room_name)}`+
       (it.category?`｜<span class="cat">${esc(it.category)}</span>`:'')+
@@ -148,7 +173,8 @@ function render(data){
           `<button class="btn btn-dismiss">🗑 不要</button>`+
           `<button class="btn btn-copy">📋 コピー</button>`+
           `<a class="btn" href="${openHref}" target="_blank">${isRecord?'🔗 サイト':'💬 ルーム'}</a>`)+
-      `</div>`;
+      `</div>`+
+      claudeBtnHTML;
     const ta = card.querySelector('textarea');
     ta.value = it.draft;
 
@@ -214,6 +240,15 @@ function render(data){
       navigator.clipboard.writeText(ta.value).then(()=>toast('コピーしました'))
         .catch(()=>{ ta.style.display='block'; ta.select(); document.execCommand('copy'); toast('コピーしました'); });
     });
+
+    const claudeBtn = card.querySelector('.claudebtn');
+    if(claudeBtn){
+      claudeBtn.addEventListener('click', ()=>{
+        navigator.clipboard.writeText(claudePrompt(it))
+          .then(()=>toast('メッセージをコピーしました。Claudeで貼り付けてください'))
+          .catch(()=>toast('コピーに失敗。💬ルームから手動でコピーしてください'));
+      });
+    }
 
     $list.appendChild(card);
   });
